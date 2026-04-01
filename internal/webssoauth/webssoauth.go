@@ -438,7 +438,8 @@ func (w *WebSSOAuthentication) promptForRole(idp string, roleARNs []string) (rol
 
 	if len(roleARNs) == 1 || w.config.AWSIAMRole() != "" {
 		roleARN = w.config.AWSIAMRole()
-		if len(roleARNs) == 1 {
+		if roleARN == "" {
+			// No role specified and only one available, auto-select it
 			roleARN = roleARNs[0]
 		}
 		roleLabel := w.choiceFriendlyLabelRole(roleARN, configRoles)
@@ -452,6 +453,18 @@ func (w *WebSSOAuthentication) promptForRole(idp string, roleARNs []string) (rol
 					break
 				}
 			}
+		}
+
+		// Verify the resolved role is in the list of available roles
+		found := false
+		for _, available := range roleARNs {
+			if roleARN == available {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return "", fmt.Errorf("role ARN %q is not available in the SAML assertion for IdP %q", roleARN, idp)
 		}
 
 		if !w.config.IsProcessCredentialsFormat() {

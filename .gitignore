@@ -4,3 +4,5 @@ dist/
 !.env.example
 bin/
 .idea
+*.local
+*.local.*
