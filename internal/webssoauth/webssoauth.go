@@ -134,17 +134,10 @@ func (w *WebSSOAuthentication) EstablishIAMCredentials() error {
 
 	at = utils.CachedAccessToken(w.config)
 	if at == nil {
-		deviceAuth, err := w.authorize()
+		at, err = w.FetchAccessToken()
 		if err != nil {
 			return err
 		}
-
-		w.promptAuthentication(deviceAuth)
-		at, err = w.accessToken(deviceAuth)
-		if err != nil {
-			return err
-		}
-		at.Expiry = time.Now().Add(time.Duration(at.ExpiresIn) * time.Second).Format(time.RFC3339)
 
 		utils.CacheAccessToken(w.config, at)
 	}
@@ -193,6 +186,24 @@ AWS Federation App with --aws-acct-fed-app-id FED_APP_ID
 	}
 
 	return w.establishTokenWithFedAppID(clientID, fedAppID, at, w.config.AWSRegion())
+}
+
+// FetchAccessToken Runs device authorization, prompts the user, and polls for a
+// new access token with its expiry set.
+func (w *WebSSOAuthentication) FetchAccessToken() (*okta.AccessToken, error) {
+	deviceAuth, err := w.authorize()
+	if err != nil {
+		return nil, err
+	}
+
+	w.promptAuthentication(deviceAuth)
+	at, err := w.accessToken(deviceAuth)
+	if err != nil {
+		return nil, err
+	}
+	at.Expiry = time.Now().Add(time.Duration(at.ExpiresIn) * time.Second).Format(time.RFC3339)
+
+	return at, nil
 }
 
 // choiceFriendlyLabelIDP returns a friendly choice for pretty printing IDP
@@ -851,7 +862,7 @@ func (w *WebSSOAuthentication) authorize() (*okta.DeviceAuthorization, error) {
 	apiURL := fmt.Sprintf("https://%s/oauth2/v1/device/authorize", w.config.OrgDomain())
 	data := url.Values{
 		"client_id": {clientID},
-		"scope":     {"openid okta.apps.sso okta.apps.read okta.users.read.self"},
+		"scope":     {"openid okta.apps.sso okta.apps.read okta.users.read.self okta.accessRequests.catalog.read okta.accessRequests.request.read okta.accessRequests.request.manage"},
 	}
 	body := strings.NewReader(data.Encode())
 	req, err := http.NewRequest(http.MethodPost, apiURL, body)
