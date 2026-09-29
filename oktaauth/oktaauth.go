@@ -28,20 +28,20 @@ func AccessToken(orgDomain, oidcClientID string, requiredScopes []string, openBr
 	return at.AccessToken, nil
 }
 
-// IAMRoles Returns the IAM role ARNs that the AWS federation app awsFedAppID
-// grants to the authenticated user.
-func IAMRoles(orgDomain, oidcClientID, awsFedAppID string, openBrowser bool) ([]string, error) {
+// SAMLAssertion Returns the base64 encoded SAML assertion that the AWS
+// federation app awsFedAppID issues to the authenticated user.
+func SAMLAssertion(orgDomain, oidcClientID, awsFedAppID string, openBrowser bool) (string, error) {
 	cfg, at, err := authenticate(orgDomain, oidcClientID, webSSOScopes, openBrowser)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	w, err := webssoauth.NewWebSSOAuthentication(cfg)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return w.IAMRoles(awsFedAppID, at)
+	return w.SAMLAssertion(awsFedAppID, at)
 }
 
 func authenticate(orgDomain, oidcClientID string, requiredScopes []string, openBrowser bool) (*config.Config, *okta.AccessToken, error) {

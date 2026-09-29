@@ -206,30 +206,15 @@ func (w *WebSSOAuthentication) FetchAccessToken() (*okta.AccessToken, error) {
 	return at, nil
 }
 
-// IAMRoles Returns the IAM role ARNs in the SAML assertion of the AWS
+// SAMLAssertion Returns the base64 encoded SAML assertion of the AWS
 // federation app fedAppID.
-func (w *WebSSOAuthentication) IAMRoles(fedAppID string, at *okta.AccessToken) ([]string, error) {
+func (w *WebSSOAuthentication) SAMLAssertion(fedAppID string, at *okta.AccessToken) (string, error) {
 	at, err := w.fetchSSOWebToken(w.config.OIDCAppID(), fedAppID, at)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	assertion, err := w.fetchSAMLAssertion(at)
-	if err != nil {
-		return nil, err
-	}
-
-	idpRolesMap, err := w.extractIDPAndRolesMapFromAssertion(assertion)
-	if err != nil {
-		return nil, err
-	}
-
-	var roles []string
-	for _, idpRoles := range idpRolesMap {
-		roles = append(roles, idpRoles...)
-	}
-
-	return roles, nil
+	return w.fetchSAMLAssertion(at)
 }
 
 // choiceFriendlyLabelIDP returns a friendly choice for pretty printing IDP
